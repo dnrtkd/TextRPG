@@ -659,6 +659,9 @@ void BattleScene()
 	showFrame(100, 22, x, y);
 	while (true)
 	{
+		SetCursor(50, 2);
+		printf_s("----- 전투 화면 -----");
+
 		int j = 0;
 		if (apearNum > 3) j = 0;
 		else if (apearNum > 1) j = 15;
@@ -905,10 +908,10 @@ void SetCursor(int _x, int _y)
 //폭, 높이, 시작지점
 void showFrame(int w, int h, int startX, int startY)
 {
-	for (int i = 0; i < h; i++)
+	for (int i = 0; i < h-2; i++)
 	{
-		SetCursor(startX, startY + i);
-		for (int j = 0; j < w; j++)
+		SetCursor(startX+1, startY + i+1);
+		for (int j = 0; j < w-2; j++)
 		{
 			printf(" ");
 		}
@@ -966,12 +969,13 @@ void shop()
 
 	int page = 0;
 	int catal = 0;
+
+	SetCursor(startX + 10, startY + 2);
+	printf_s("------ 상점 ------");
+	
 	while (true)
 	{
 		showFrame(50, 22, startX, startY);
-
-		SetCursor(startX + 10, startY + 2);
-		printf_s("------ 상점 ------");
 
 		page = page % 3;
 		
@@ -1091,7 +1095,7 @@ int buy(ITEM item)//구매 성공하면 1 실패하면 0 반환
 
 }
 
-void useTemUse(ITEM item)
+void useTemUse(ITEM item,int index)
 {
 	if (item.itemType == Item_Use) //소모 품이면
 	{
@@ -1103,6 +1107,4 @@ void useTemUse(ITEM item)
 		else
 			player.currHp += hpRe;
 	}
-
-	
 }
