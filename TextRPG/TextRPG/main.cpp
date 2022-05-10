@@ -37,6 +37,7 @@ const int InvenSize = 20;
 
 const int levelTable[15] = { 50,100,200,400,700,1500,2500,3500,4500,6000,8000,10000,12000,15000,20000 };
 
+
 typedef struct tagItme
 {
 	char* name;
@@ -51,7 +52,6 @@ typedef struct tagMap
 	int levelLimit;
 	int apearMonster[3];
 }Map; //맵 정보 구조체
-
 //스텟
 typedef struct tagStatus
 {
@@ -87,12 +87,12 @@ typedef struct tagPlayer //플레이어 구조체
 	PROTECTION protection;
 }Player;
 
-typedef struct tagInventory
+typedef struct tagSlot
 {
-	ITEM item[InvenSize];
 	int index;
-
-}INVEN;
+	ITEM item;
+	int count;
+}SLOT;
 
 typedef struct tagMonster
 {
@@ -125,7 +125,8 @@ ETCTEM EtcTems[9];
 PROTECTION protections[3];
 MONSTER monsters[9];
 
-INVEN inventory;
+SLOT inventory[InvenSize];
+int invenIndex = 0;
 
 void HideCursor();
 void SetPosition(int _x, int _y, char* _str, int _Color);
@@ -143,12 +144,12 @@ void allotPoints();
 void CreatePlayerScene();
 void showPlayer();
 void SetCursor(int _x, int _y);
-void winUi(int a, int b,int c);
-void rewardGain(int a , int b);
-int PlayerAttack( MONSTER* p);
+void winUi(int a, int b, int c);
+void rewardGain(int a, int b);
+int PlayerAttack(MONSTER* p);
 int monsAttack(const MONSTER* p);
 void showInven();
-void WeaponDataInput(int index, int limitLevel, const char* name, int att,const int type,int price)
+void WeaponDataInput(int index, int limitLevel, const char* name, int att, const int type, int price)
 {
 	weapons[index].limitLevel = limitLevel;
 	weapons[index].item.name = (char*)name;
@@ -181,7 +182,7 @@ void EtcTemDataInput(int index, const char* name, const char* expl, const int ty
 	EtcTems[index].explain = (char*)expl;
 	EtcTems[index].item.itemNum = index;
 	EtcTems[index].item.itemType = type;
-	EtcTems[index].item.name = (char* )name;
+	EtcTems[index].item.name = (char*)name;
 	EtcTems[index].item.price = price;
 }
 void MonsterDataInput(int index, const char* name, int level, int hp, int att, int def, int quick, int exp, int gold)
@@ -203,20 +204,33 @@ void MapDataInput(int index, const char* name, int levelLimit, int appearMon1, i
 	maps[index].apearMonster[1] = appearMon2;
 	maps[index].apearMonster[2] = appearMon3;
 }
-void InputInven(ITEM i) //전역변수 inventory에 아이템을 넣음
+void InputInven(ITEM item) //전역변수 inventory에 아이템을 넣음
 {
-	if (inventory.index < InvenSize - 1)
+	for (int i = 0; i < invenIndex; i++)
 	{
-		inventory.item[inventory.index] = i;
-		inventory.index++;
+		//아이템이 이미 인벤토리에 들어있는지 확인하는 부분
+		if (inventory[i].item.itemNum == item.itemNum && inventory[i].item.itemType == item.itemType)
+		{
+			inventory[i].count++;
+			inventory[i].index = i;
+			return; //count증가후 함수 종료
+		}
+	}
+	if (invenIndex < InvenSize - 1)
+	{
+		inventory[invenIndex].item = item;
+		inventory[invenIndex].count++;
+		inventory[invenIndex].index = invenIndex;
+		invenIndex++;
 	}
 	else
 	{
-		printf_s("아이템이 꽉 찼습니다.");
+		printf_s("인벤토리가 꽉 찼습니다.");
 	}
 }
 void shop();
 int buy(ITEM item);
+void showBattleInvenUI();
 MONSTER* CreateMonster(int index)
 {
 	MONSTER* p = (MONSTER*)malloc(sizeof(MONSTER));
@@ -235,8 +249,6 @@ MONSTER* CreateMonster(int index)
 }
 
 Player player;
-//const int CursorX;
-//const int CursorY;
 
 void EquipWeapon(WEAPON w)
 {
@@ -248,7 +260,6 @@ void EquipWeapon(WEAPON w)
 	else
 		printf_s("장착 불가!");
 }
-
 void EquipProtection(PROTECTION p)
 {
 	if (p.limitLevel <= player.level)
@@ -265,7 +276,7 @@ int main(void)
 	srand(time(0));
 
 	//장비 초기화
-	WeaponDataInput(0, 1, "죽도", 5,Item_WP,100);
+	WeaponDataInput(0, 1, "죽도", 5, Item_WP, 100);
 	WeaponDataInput(1, 5, "환도", 8, Item_WP, 500);
 	WeaponDataInput(2, 10, "청도", 12, Item_WP, 1000);
 	WeaponDataInput(3, 1, "수련용활", 7, Item_WP, 100);
@@ -275,7 +286,7 @@ int main(void)
 	WeaponDataInput(7, 5, "조총", 15, Item_WP, 500);
 	WeaponDataInput(8, 10, "화승총", 20, Item_WP, 1000);
 
-	ProtectionDataInput(0, 1, "각목 갑옷", 5,Item_Pro,100);
+	ProtectionDataInput(0, 1, "각목 갑옷", 5, Item_Pro, 100);
 	ProtectionDataInput(1, 5, "청동 갑옷", 10, Item_Pro, 500);
 	ProtectionDataInput(2, 10, "철 갑옷", 15, Item_Pro, 1000);
 
@@ -552,35 +563,72 @@ void showPlayer()
 	scanf("%d", &i);
 
 
-}
-void showInven()
+} //상태창 보기
+void showInven() //인벤토리 보기
 {
-	short startX = 40;
+	short startX = 30;
 	short startY = 2;
 
-
-	showFrame(40, 22, startX, startY);
-	for (int i = 0; i < inventory.index; i++)
+	showFrame(60, 22, startX, startY);
+	for (int i = 0; i < invenIndex; i++)
 	{
-		SetCursor(startX + 3, startY + 2+i);
-		printf_s("이름: %s",inventory.item[i].name);
+		SetCursor(startX + 3, startY + 2 + i * 2);
+		printf_s("*이름: %s ", inventory[i].item.name);
 
-		if (inventory.item[i].itemType == Item_Pro)
-			printf_s("타입: 방어구");
-		else if (inventory.item[i].itemType == Item_WP)
-			printf_s("타입: 무기");
-		else if (inventory.item[i].itemType == Item_Use)
-			printf_s("타입: 소모품");
+		if (inventory[i].item.itemType == Item_Pro)
+			printf_s(" 타입: 방어구 ");
+		else if (inventory[i].item.itemType == Item_WP)
+			printf_s(" 타입: 무기 ");
+		else if (inventory[i].item.itemType == Item_Use)
+			printf_s(" 타입: 소모품 ");
+
+		printf_s(" 개수: %d", inventory[i].count);
 	}
-	
+
 	SetCursor(startX + 2, startY + 18);
 	printf_s("1. 인벤토리 닫기");
 
 	int i = 0;
 	scanf("%d", &i);
-
 }
+void showBattleInvenUI()//배틀씬의 인벤토리 ui
+{
+	int startX = 65, startY = 18;
+	showFrame(50, 10, 65, 18);
 
+	SetPosition(startX + 15, startY + 2, (char*)"---  인벤토리  ---", 2);
+
+	for (int i = 0; i < invenIndex; i++)
+	{
+		if (inventory[i].item.itemType == Item_Use)
+		{
+			SetCursor(startX + 2, startY + 4 + (i * 2));
+			printf_s("* %s  %d 회복 ", useitems[inventory[i].item.itemNum].item.name, useitems[inventory[i].item.itemNum].hpRegain);
+		}
+	}
+}
+void BattleInven()
+{
+	int useTemIndexes[InvenSize];
+	for (int i = 0; i < invenIndex; i++)
+	{
+		if (inventory[i].item.itemType == Item_Use) //사용아이템의 인덱스만 추출
+		{
+			useTemIndexes[i] = inventory[i].index;
+		}
+	}
+
+	showBattleInvenUI();
+
+	while (true)
+	{
+		int i = 0;
+		scanf("%d", &i);
+
+		if (i == 1);
+		break;
+	}
+}
 void SelectFieldScene()
 {
 	printf_s("SelectFieldScene\n\n");
@@ -638,18 +686,23 @@ void InField()
 }
 void BattleScene()
 {
-	MONSTER* p[5] = {NULL,NULL,NULL,NULL,NULL };
+	const int attack = 0;
+	const int skill = 1;
+	const int item = 2;
+	const int exit = 3;
+
+	MONSTER* p[5] = { NULL,NULL,NULL,NULL,NULL };
 
 	int x = 10, y = 2; //콘솔 좌표
 
 	int exp = 0, gold = 0; //전투 승리후 보상
 
-	int apearNum = rand() % 5+1;//몬스터 출현 수
+	int apearNum = rand() % 5 + 1;//몬스터 출현 수
 
 	for (int i = 0; i < apearNum; i++)//몬스터 출현
 	{
 		int hidden = rand() % 100;
-		
+
 		if (hidden < 10) p[i] = CreateMonster(maps[MapState].apearMonster[2]); //가장 강한 몬스터
 		else if (hidden < 50) p[i] = CreateMonster(maps[MapState].apearMonster[1]); //중간
 		else p[i] = CreateMonster(maps[MapState].apearMonster[0]); //가장 약함
@@ -666,29 +719,29 @@ void BattleScene()
 		if (apearNum > 3) j = 0;
 		else if (apearNum > 1) j = 15;
 		else j = 30;
-		
+
 		for (int i = 0; i < apearNum; i++)
 		{
-			
-			SetCursor(x +15 + j+(i*15), y+1);
+
+			SetCursor(x + 15 + j + (i * 15), y + 1);
 			printf_s("레벨:%d", p[i]->level);
 
-			SetCursor(x +15 + j + (i *15), y+2);
-			printf_s("이름:%s",p[i]->name);
+			SetCursor(x + 15 + j + (i * 15), y + 2);
+			printf_s("이름:%s", p[i]->name);
 
-			SetCursor(x +15 + j + (i * 15), y+3);
+			SetCursor(x + 15 + j + (i * 15), y + 3);
 			printf_s("                      ");
 			SetCursor(x + 15 + j + (i * 15), y + 3);
 			printf_s("HP:%d/%d", p[i]->currHP, p[i]->Hp);
 		}
 
-		SetCursor(50,y+15);
+		SetCursor(50, y + 15);
 		printf_s("레벨:%d", player.level);
 
-		SetCursor(50, y+16);
+		SetCursor(50, y + 16);
 		printf_s("이름%s", player.name);
 
-		SetCursor(50, y+17);
+		SetCursor(50, y + 17);
 		printf_s("                       ");
 		SetCursor(50, y + 17);
 		printf_s("HP:%d/%d", player.currHp, player.status.hp);
@@ -697,9 +750,9 @@ void BattleScene()
 		printf_s("1.공격   2.스킬사용  3.아이템사용 4.도망가기");
 
 		int i = 0;
-		scanf_s("%d" ,& i);
+		scanf_s("%d", &i);
 
-		if (i == 1) //기본 공격
+		if (i == attack) //기본 공격
 		{
 			SetCursor(50, 26);
 			printf_s("                                            ");
@@ -710,9 +763,9 @@ void BattleScene()
 			int i = 0;
 			scanf_s("%d", &i);
 
-			if ((i<6 && i>0) && (p[i-1] != NULL) && (p[i-1]->currHP>0))
+			if ((i < 6 && i>0) && (p[i - 1] != NULL) && (p[i - 1]->currHP > 0))
 			{
-				int damage=PlayerAttack(p[i - 1]);
+				int damage = PlayerAttack(p[i - 1]);
 
 				SetCursor(50, y + 13);
 				printf_s("공격");
@@ -761,18 +814,18 @@ void BattleScene()
 				}
 			}
 		}
-		else if (i == 2)
+		else if (i == skill)//스킬
 		{
 
 		}
-		else if (i == 3)
+		else if (i == item)//아이템 사용
 		{
-
+			BattleInven();
 		}
-		else if (i == 4)
+		else if (i == exit)//도망
 			break;
 
-		int check=0;
+		int check = 0;
 		for (int i = 0; i < apearNum; i++)
 		{
 			check += p[i]->currHP;
@@ -805,11 +858,11 @@ int monsAttack(const MONSTER* p)
 		player.currHp -= damage;
 	else
 		player.currHp = 0;
-	
+
 	return damage;
 }
 
-int PlayerAttack( MONSTER* p)
+int PlayerAttack(MONSTER* p)
 {
 	int damage = 0;
 	if (player.status.att > p->def)
@@ -849,12 +902,12 @@ int LevelUp()//레벨업을 했으면 1 반환 아니면 0 반환
 			player.status.att += 4;
 			player.status.def += 1;
 		}
-			
+
 	}
 	return isLevelUp;
 }
 
-void winUi(int gold, int exp,int isLevelUp)//이겼을때 표시되는 ui 
+void winUi(int gold, int exp, int isLevelUp)//이겼을때 표시되는 ui 
 {
 	int startX = 40, startY = 5;
 
@@ -878,8 +931,8 @@ void winUi(int gold, int exp,int isLevelUp)//이겼을때 표시되는 ui
 
 	int i = 0;
 	scanf_s("%d", &i);
-	if (i == 1) BattleScene();	
-} 
+	if (i == 1) BattleScene();
+}
 void rewardGain(int exp, int gold) //플레이어 보상획득
 {
 	player.exp += exp;
@@ -908,10 +961,10 @@ void SetCursor(int _x, int _y)
 //폭, 높이, 시작지점
 void showFrame(int w, int h, int startX, int startY)
 {
-	for (int i = 0; i < h-2; i++)
+	for (int i = 0; i < h - 2; i++)
 	{
-		SetCursor(startX+1, startY + i+1);
-		for (int j = 0; j < w-2; j++)
+		SetCursor(startX + 1, startY + i + 1);
+		for (int j = 0; j < w - 2; j++)
 		{
 			printf(" ");
 		}
@@ -932,7 +985,7 @@ void showFrame(int w, int h, int startX, int startY)
 			else printf_s(" ");
 		}
 	}
-	SetCursor(startX+1, startY +1);
+	SetCursor(startX + 1, startY + 1);
 }
 
 void SetColor(int _Color)
@@ -972,13 +1025,13 @@ void shop()
 
 	SetCursor(startX + 10, startY + 2);
 	printf_s("------ 상점 ------");
-	
+
 	while (true)
 	{
 		showFrame(50, 22, startX, startY);
 
 		page = page % 3;
-		
+
 		if (page == WP)
 		{
 			catal = catal % 3;
@@ -993,7 +1046,7 @@ void shop()
 					printf_s("*  이름:%s     금액:%d", weapons[i].item.name, weapons[i].item.price);
 
 					SetCursor(startX + 2, startY + 5 + (i * 4));
-					printf_s("   공격력:%d   레벨제한:%d",  weapons[i].att, weapons[i].limitLevel);
+					printf_s("   공격력:%d   레벨제한:%d", weapons[i].att, weapons[i].limitLevel);
 				}
 			}
 
@@ -1030,7 +1083,7 @@ void shop()
 				if (useitems[i].hpRegain != NULL)
 				{
 					SetCursor(startX + 2, startY + 4 + (i * 2));
-					printf_s("*  이름:%s   체력회복양:%d   금액:%d", useitems[i].item.name,useitems[i].hpRegain, useitems[i].item.price);
+					printf_s("*  이름:%s   체력회복양:%d   금액:%d", useitems[i].item.name, useitems[i].hpRegain, useitems[i].item.price);
 				}
 			}
 
@@ -1083,7 +1136,7 @@ void shop()
 
 int buy(ITEM item)//구매 성공하면 1 실패하면 0 반환
 {
-	if (player.gold >= item.price )
+	if (player.gold >= item.price)
 	{
 		InputInven(item);
 		player.gold -= item.price;
@@ -1095,16 +1148,24 @@ int buy(ITEM item)//구매 성공하면 1 실패하면 0 반환
 
 }
 
-void useTemUse(ITEM item,int index)
+void useTemUse(ITEM item, int index)
 {
 	if (item.itemType == Item_Use) //소모 품이면
 	{
-		int hpRe=useitems[item.itemNum].hpRegain;
-		int MpRe =useitems[item.itemNum].MpRegain;
+		int hpRe = useitems[item.itemNum].hpRegain;
+		int MpRe = useitems[item.itemNum].MpRegain;
 
 		if (player.currHp < player.currHp + hpRe)
 			player.currHp = player.status.hp;
 		else
 			player.currHp += hpRe;
+	}
+}
+
+void useItem(int invenIndex) //아이템 사용 함수
+{
+	if (inventory[invenIndex].item.itemType == Item_Use)
+	{
+		player.currHp = useitems[inventory[invenIndex].item.itemNum].hpRegain;
 	}
 }
