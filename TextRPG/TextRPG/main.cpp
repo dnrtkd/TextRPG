@@ -149,6 +149,9 @@ void rewardGain(int a, int b);
 int PlayerAttack(MONSTER* p);
 int monsAttack(const MONSTER* p);
 void showInven();
+void MenuSceneUI(int startX, int startY);
+void Save();
+void Load();
 void WeaponDataInput(int index, int limitLevel, const char* name, int att, const int type, int price)
 {
 	weapons[index].limitLevel = limitLevel;
@@ -400,40 +403,24 @@ void SceneManager()
 
 void LogoScene()
 {
-	int Width = (120 / 2) - (strlen("      ,gggg,     _,gggggg,_        ,gg,         _,gggggg,_      ") / 2);
+	int Width = (120 / 2) - (strlen("     ,--. ,-----.  ,---.  ,--. ,--.,--.  ,--.      ,------. ,------.  ,----.    ") / 2);
 	int Height = 10;
 
-	SetPosition(Width, Height + 1, (char*)"      ,gggg,     _,gggggg,_        ,gg,         _,gggggg,_      ", 1);
-	SetPosition(Width, Height + 2, (char*)"      d8` `8I   ,d8P``d8P`Y8b,     i8``8i      ,d8P``d8P`Y8b,   ", 2);
-	SetPosition(Width, Height + 3, (char*)"      88  ,dP  ,d8'   Y8   `8b,dP  `8,,8'     ,d8'   Y8   `8b,dP", 3);
-	SetPosition(Width, Height + 4, (char*)"   8888888P`   d8'    `Ybaaad88P'   `Y88aaad8 d8'    `Ybaaad88P'", 4);
-	SetPosition(Width, Height + 5, (char*)"      88       8P       `````Y8      d8````Y8,8P       `````Y8  ", 5);
-	SetPosition(Width, Height + 6, (char*)"      88       8b            d8     ,8P     8b8b            d8  ", 6);
-	SetPosition(Width, Height + 7, (char*)" ,aa,_88       Y8,          ,8P     dP      Y8Y8,          ,8P  ", 7);
-	SetPosition(Width, Height + 8, (char*)"dP` `88P       `Y8,        ,8P' _ ,dP'      I8`Y8,        ,8P'  ", 8);
-	SetPosition(Width, Height + 9, (char*)"Yb,_,d88b,,_    `Y8b,,__,,d8P'  `888,,_____,dP `Y8b,,__,,d8P'   ", 9);
-	SetPosition(Width, Height + 10, (char*)" `Y8P`  `Y88888   ``Y8888P`'    a8P`Y888888P`    ``Y8888P`'     ", 10);
-	SetColor(1);
+	SetPosition(Width, Height + 1, (char*)"     ,--. ,-----.  ,---.  ,--. ,--.,--.  ,--.      ,------. ,------.  ,----.    ", 1);
+	SetPosition(Width, Height + 2, (char*)"     |  |'  .-.  ''   .-' |  | |  ||  ,'.|  |      |  .--. '|  .--. ''  .-./    ", 2);
+	SetPosition(Width, Height + 3, (char*)",--. |  ||  | |  |`.  `-. |  | |  ||  |' '  |      |  '--'.'|  '--' ||  | .---. ", 3);
+	SetPosition(Width, Height + 4, (char*)"|  '-'  /'  '-'  '.-'    |'  '-'  '|  | `   |,----.|  |\  \ |  | --' '  '--'  | ", 4);
+	SetPosition(Width, Height + 5, (char*)" `-----'  `-----' `-----'  `-----' `--'  `--''----'`--' '--'`--'      `------'  ", 5);
 
+	SetColor(15);
 	Sleep(3000);
-	SetPosition(Width + 10, Height + 12, (char*)"게임을 시작하려면, Enter키를 눌러주세요.", 2);
-	char c;
-	while (true)
-	{
-		c = _getch();
-		if (c == 13)break;
-	}
-
+	
 	SceneState++;
 }
 
-
 void MenuScene()
 {
-	printf_s("MenuScene\n\n");
-
-	//printf_s("다음 씬 ㄱㄱ??\n1. 게임시작\n2. 종료\n입력 : ");
-	printf_s("1. 새로시작\n");
+	printf_s("다음 씬 ㄱㄱ??\n1. 게임시작\n2. 종료\n입력 : ");
 	printf_s("2. 이어하기\n");
 	printf_s("3. 게임종료\n");
 	int i = 0;
@@ -495,25 +482,84 @@ void allotPoints()
 	}
 }
 
+void MenuSceneUI(int startX,int startY)
+{
+	system("cls");
 
+	showFrame(40, 20, startX, startY);
+	SetPosition(startX + 8, startY + 4, (char*)"--   지역 선택    --", 2);
+	SetPosition(startX + 8, startY + 6, (char*)"--   상점 가기    --", 2);
+	SetPosition(startX + 8, startY + 8, (char*)"--  인벤토리 보기 --", 2);
+	SetPosition(startX + 8, startY + 10, (char*)"-- 캐릭터 정보보기--", 2);
+	SetPosition(startX + 8, startY + 12, (char*)"--    뒤로 가기   --", 2);
+}
 void MenuScene2()
 {
-	printf_s("MenuScene2\n");
+	Load();
+	int catal = 1, catalMax = 5;
+	
+	int startX = 40, startY = 5;
+	MenuSceneUI(startX, startY);
 
-	printf_s("\n1. 필드탐험\n2. 상점\n3. 인벤토리\n4. 플레이어 정보");
+	SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
 
-	int i = 0;
-	scanf("%d", &i);
-
-	if (i == 1)
-		SceneState++;
-	else if (i == 2) { shop(); }
-	else if (i == 3) { showInven(); }
-	else if (i == 4)
+	while (true)
 	{
-		showPlayer();
-	}
+		char c = _getch();
 
+		if (c == 72) //위 방향키
+		{
+			SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"  ", 2);
+			if (catal == 1)
+				catal = catalMax;
+			else
+				catal--;
+			SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
+		}
+		else if (c == 80) //아래 방향키
+		{
+			SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"  ", 2);
+			if (catal == catalMax)
+				catal = 1;
+			else
+				catal++;
+			SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
+		}
+		else if (c == 97) //선택
+		{
+			if (catal == 1)
+			{
+				SceneState++;
+				break;
+			}
+			else if (catal == 2)
+			{
+				c = 0;
+				shop();
+				MenuSceneUI(startX, startY);
+				SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
+			}
+			else if (catal == 3)
+			{
+				c = 0;
+				showInven();
+				MenuSceneUI(startX, startY);
+				SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
+			}
+			else if (catal == 4)
+			{
+				c = 0;
+				showPlayer();
+				MenuSceneUI(startX, startY);
+				SetPosition(startX + 30, startY + 2 + catal * 2, (char*)"◀", 2);
+			}
+			else if (catal == 5)
+			{
+				SceneState--;
+				break;
+			}
+		}
+	}
 }
 
 void showPlayer()
@@ -838,6 +884,7 @@ void BattleScene()
 				gold += p[i]->gold;
 			}
 			rewardGain(exp, gold);
+			Save();
 			break;
 		}
 	}
@@ -958,6 +1005,7 @@ void SetCursor(int _x, int _y)
 
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);//커서 위치 이동
 }
+
 //폭, 높이, 시작지점
 void showFrame(int w, int h, int startX, int startY)
 {
@@ -971,6 +1019,7 @@ void showFrame(int w, int h, int startX, int startY)
 
 	}
 
+	
 	for (int i = 0; i < h; i++)
 	{
 		SetCursor(startX, startY + i);
@@ -986,6 +1035,9 @@ void showFrame(int w, int h, int startX, int startY)
 		}
 	}
 	SetCursor(startX + 1, startY + 1);
+	
+	
+	
 }
 
 void SetColor(int _Color)
@@ -1168,4 +1220,30 @@ void useItem(int invenIndex) //아이템 사용 함수
 	{
 		player.currHp = useitems[inventory[invenIndex].item.itemNum].hpRegain;
 	}
+}
+
+void Save()
+{
+	FILE* fPtr = fopen("SaveData.txt", "w");
+	if (fPtr == nullptr) printf_s("error : 파일을 열 수 없음.");
+
+	fprintf(fPtr, "%s %d %d %d %d %d %d %d %d", player.name, player.level, player.job, player.gold, player.exp,
+		player.currHp, player.status.att, player.status.def, player.status.hp);
+
+
+	if (fclose(fPtr) != 0) printf_s(" error: 파일을 닫을 수 없음");
+}
+void Load()
+{
+	FILE* fPtr = fopen("SaveData.txt", "r");
+	if (fPtr == nullptr) printf_s("error : 파일을 열 수 없음.");
+
+	while (EOF != fscanf(fPtr, "%s %d %d %d %d %d %d %d %d", player.name, &player.level, &player.job, &player.gold, &player.exp,
+		&player.currHp, &player.status.att, &player.status.def, &player.status.hp))
+	{
+
+	}
+	
+
+	if (fclose(fPtr) != 0) printf_s(" error: 파일을 닫을 수 없음");
 }
