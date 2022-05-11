@@ -10,13 +10,12 @@
 int SceneState = 0;
 //씬 변환 상수
 const int Scene_Logo = 0;
-const int Scene_Menu = 1;
-const int Scene_NewGame = 2;
-const int Scene_Menu2 = 3;
-const int Scene_SelectField = 4;
-const int Scene_InField = 5;
-const int Scene_Battle = 6;
-const int Scene_Exit = 7;
+const int Scene_NewGame = 1;
+const int Scene_Menu2 = 2;
+const int Scene_SelectField = 3;
+const int Scene_InField = 4;
+const int Scene_Battle = 5;
+const int Scene_Exit = 6;
 //현재 맵
 int MapState = 0;
 //맵 상수
@@ -152,6 +151,7 @@ void showInven();
 void MenuSceneUI(int startX, int startY);
 void Save();
 void Load();
+void CreatePlayer();
 void WeaponDataInput(int index, int limitLevel, const char* name, int att, const int type, int price)
 {
 	weapons[index].limitLevel = limitLevel;
@@ -327,9 +327,6 @@ int main(void)
 	InputInven(useitems[0].item);
 	InputInven(useitems[3].item);
 
-	// ** 커서를 안보이게 함.
-	HideCursor();
-
 	// ** 콘솔창의 사이즈를 설정.
 	system("mode con:cols=120 lines=30");
 
@@ -377,9 +374,6 @@ void SceneManager()
 	case Scene_Logo:
 		LogoScene();
 		break;
-	case Scene_Menu:
-		MenuScene();
-		break;
 	case Scene_NewGame:
 		CreatePlayerScene();
 		break;
@@ -401,6 +395,8 @@ void SceneManager()
 	}
 }
 
+
+
 void LogoScene()
 {
 	int Width = (120 / 2) - (strlen("     ,--. ,-----.  ,---.  ,--. ,--.,--.  ,--.      ,------. ,------.  ,----.    ") / 2);
@@ -412,26 +408,79 @@ void LogoScene()
 	SetPosition(Width, Height + 4, (char*)"|  '-'  /'  '-'  '.-'    |'  '-'  '|  | `   |,----.|  |\  \ |  | --' '  '--'  | ", 4);
 	SetPosition(Width, Height + 5, (char*)" `-----'  `-----' `-----'  `-----' `--'  `--''----'`--' '--'`--'      `------'  ", 5);
 
-	SetColor(15);
+	SetColor(2);
+
 	Sleep(3000);
+
+	CreatePlayer();
 	
 	SceneState++;
 }
 
-void MenuScene()
+void CreatePlayer()
 {
-	printf_s("다음 씬 ㄱㄱ??\n1. 게임시작\n2. 종료\n입력 : ");
-	printf_s("2. 이어하기\n");
-	printf_s("3. 게임종료\n");
-	int i = 0;
-	scanf("%d", &i);
+	int startX = 30, startY = 5;
+	int catal = 0, catalMax = 3;
+	showFrame(50, 20, startX, startY);
 
-	if (i == 1)
-		SceneState++;
-	else if (i == 2) SceneState += 2;
-	else if (i == 3)
-		SceneState = Scene_Exit;
+	SetPosition(startX+3, startY+2, (char*)"닉네임 입력: ",15);
+
+	SetPosition(startX + 3, startY + 5, (char*)"-- 직업선택 --", 15);
+
+	SetPosition(startX + 3, startY + 7, (char*)"■  검술사", 15);
+
+	SetPosition(startX + 3, startY + 9, (char*)"■  궁술사", 15);
+
+	SetPosition(startX+ 3, startY + 11, (char*)"■  총술사", 15);
+
+	SetCursor(startX + 3 + strlen("닉네임 입력: "), startY + 2);
+	player.name = SetName();
+	// ** 커서를 안보이게 함.
+	HideCursor();
+
+	while (true)
+	{
+		char c = _getch();
+
+		if (c == 72) //위 방향키
+		{
+			SetPosition(startX + 20, startY + 5 + catal * 2, (char*)"  ", 2);
+			if (catal <= 1)
+				catal = catalMax;
+			else
+				catal--;
+			SetPosition(startX + 20, startY + 5 + catal * 2, (char*)"◀", 2);
+		}
+		else if (c == 80) //아래 방향키
+		{
+			SetPosition(startX + 20, startY + 5 + catal * 2, (char*)"  ", 2);
+			if (catal == catalMax)
+				catal = 1;
+			else
+				catal++;
+			SetPosition(startX + 20, startY + 5 + catal * 2, (char*)"◀", 2);
+		}
+		else if (c == 97) //선택
+		{
+			if (catal == 1) player.job = 0;
+			if (catal == 2) player.job = 1;
+			if (catal == 3) player.job = 2;
+
+			player.level = 1;
+			player.gold = 200;
+			player.exp = 0;
+			allotPoints();
+			EquipWeapon(weapons[0]);
+			EquipProtection(protections[0]);
+
+			player.currHp = player.status.hp;
+
+			SceneState++;
+			break;
+		}
+	}
 }
+
 //새로 하기 씬
 void CreatePlayerScene()
 {
@@ -444,10 +493,6 @@ void CreatePlayerScene()
 	printf_s("\n\n직업 선택\n1. 검술사\n2. 궁술사\n3. 총술사");
 	int i = 0;
 	scanf("%d", &i);
-
-	if (i == 1) player.job = 0;
-	if (i == 2) player.job = 1;
-	if (i == 3) player.job = 2;
 
 	EquipWeapon(weapons[0]);
 	EquipProtection(protections[0]);
@@ -495,7 +540,6 @@ void MenuSceneUI(int startX,int startY)
 }
 void MenuScene2()
 {
-	Load();
 	int catal = 1, catalMax = 5;
 	
 	int startX = 40, startY = 5;
@@ -1025,12 +1069,12 @@ void showFrame(int w, int h, int startX, int startY)
 		SetCursor(startX, startY + i);
 		for (int j = 0; j < w; j++)
 		{
-			if (i == 0 && j == 0)printf_s("┌");
-			else if (i == 0 && j == w - 1)printf_s("┐");
-			else if (i == (h - 1) && j == 0)printf_s("└");
-			else if (i == (h - 1) && j == w - 1)printf_s("┘");
-			else if (i == 0 || i == h - 1) printf_s("─");
-			else if (j == 0 || j == w - 1) printf_s("│");
+			if (i == 0 && j == 0)printf_s("┏");
+			else if (i == 0 && j == w - 1)printf_s("┓");
+			else if (i == (h - 1) && j == 0)printf_s("┗");
+			else if (i == (h - 1) && j == w - 1)printf_s("┛");
+			else if (i == 0 || i == h - 1) printf_s("━");
+			else if (j == 0 || j == w - 1) printf_s("┃");
 			else printf_s(" ");
 		}
 	}
@@ -1237,13 +1281,14 @@ void Load()
 {
 	FILE* fPtr = fopen("SaveData.txt", "r");
 	if (fPtr == nullptr) printf_s("error : 파일을 열 수 없음.");
-
-	while (EOF != fscanf(fPtr, "%s %d %d %d %d %d %d %d %d", player.name, &player.level, &player.job, &player.gold, &player.exp,
-		&player.currHp, &player.status.att, &player.status.def, &player.status.hp))
+	else
 	{
+		while (EOF != fscanf(fPtr, "%s %d %d %d %d %d %d %d %d", player.name, &player.level, &player.job, &player.gold, &player.exp,
+			&player.currHp, &player.status.att, &player.status.def, &player.status.hp))
+		{
 
+		}
 	}
 	
-
 	if (fclose(fPtr) != 0) printf_s(" error: 파일을 닫을 수 없음");
 }
