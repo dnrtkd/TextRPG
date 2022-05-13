@@ -412,8 +412,6 @@ void LogoScene()
 
 	Sleep(3000);
 
-	Load();
-
 	if (player.name==NULL)
 	CreatePlayer();
 	
@@ -698,6 +696,7 @@ void showBattleInvenUI()//배틀씬의 인벤토리 ui
 	{
 		char c = _getch();
 
+		if(inventory)
 		SetCursor(startX + 1, 20); //설명란
 		printf_s("               ");
 		SetCursor(startX + 1, 20);
@@ -724,12 +723,23 @@ void showBattleInvenUI()//배틀씬의 인벤토리 ui
 		else if (c == 13)
 		{
 			useItem(catal-1);
+
+			for (int i = 0; i < 25; i++)
+			{
+				SetCursor(startX ,startY+i);
+				for (int j = 0; j < 22; j++)
+				{
+					printf(" ");
+				}
+
+			}
 			break;
 		}
 	}
 }
 void BattleInven()
 {
+	getchar();
 	int useTemIndexes[InvenSize];
 	for (int i = 0; i < invenIndex; i++)
 	{
@@ -799,8 +809,7 @@ void InField()
 }
 void BattleScene()
 {
-	const int attack = 0;
-	const int skill = 1;
+	const int attack = 1;
 	const int item = 2;
 	const int exit = 3;
 
@@ -880,10 +889,10 @@ void BattleScene()
 			{
 				int damage = PlayerAttack(p[i - 1]);
 
-				SetCursor(30, y + 13);
+				SetCursor(40, y + 13);
 				printf_s("공격");
 				Sleep(1000);
-				SetCursor(30, y + 13);
+				SetCursor(40, y + 13);
 				printf_s("     ");
 
 				for (int k = 0; k < apearNum; k++)
@@ -915,21 +924,17 @@ void BattleScene()
 						SetCursor(x + 5 + j + (k * 15), y + 5);
 						printf_s("      ");
 
-						SetCursor(30, y + 13);
+						SetCursor(40, y + 13);
 						printf_s("데미지: %d", damage);
 						Sleep(1000);
-						SetCursor(30, y + 13);
+						SetCursor(40, y + 13);
 						printf_s("          ");
 
-						SetCursor(30, y + 17);
+						SetCursor(40, y + 17);
 						printf_s("HP:%d/%d", player.currHp, player.status.hp);
 					}
 				}
 			}
-		}
-		else if (i == skill)//스킬
-		{
-
 		}
 		else if (i == item)//아이템 사용
 		{
@@ -1280,16 +1285,24 @@ void useTemUse(ITEM item, int index)
 	}
 }
 
-void useItem(int invenIndex) //아이템 사용 함수
+void useItem(int Index) //아이템 사용 함수
 {
-	if (inventory[invenIndex].item.itemType == Item_Use)
+	if (inventory[Index].item.itemType == Item_Use)
 	{
-		if (player.currHp + useitems[inventory[invenIndex].item.itemNum].hpRegain > player.status.hp)
+		if (player.currHp + useitems[inventory[Index].item.itemNum].hpRegain > player.status.hp)
 			player.currHp = player.status.hp;
 		else
-		player.currHp += useitems[inventory[invenIndex].item.itemNum].hpRegain;
+		player.currHp += useitems[inventory[Index].item.itemNum].hpRegain;
 	}
-	invenIndex--;
+	
+	inventory[Index].count--;
+	if (inventory[Index].count == 0)
+	{
+		SLOT temp = inventory[Index];
+		inventory[Index] = inventory[invenIndex-1];
+		inventory[invenIndex - 1] = inventory[Index];
+		invenIndex--;
+	}
 }
 
 void Save()
