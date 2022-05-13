@@ -12,9 +12,8 @@ int SceneState = 0;
 const int Scene_Logo = 0;
 const int Scene_Menu2 = 1;
 const int Scene_SelectField = 2;
-const int Scene_InField = 3;
-const int Scene_Battle = 4;
-const int Scene_Exit = 5;
+const int Scene_Battle = 3;
+const int Scene_Exit = 4;
 //현재 맵
 int MapState = 0;
 //맵 상수
@@ -131,15 +130,12 @@ void SetPosition(int _x, int _y, char* _str, int _Color);
 void SetColor(int _Color);
 void LogoScene();
 void SceneManager();
-void MenuScene();
 void MenuScene2();
 char* SetName();
 void SelectFieldScene();
 void BattleScene();
-void InField();
 void showFrame(int w, int h, int startX, int startY);
 void allotPoints();
-void CreatePlayerScene();
 void showPlayer();
 void SetCursor(int _x, int _y);
 void winUi(int a, int b, int c);
@@ -384,9 +380,6 @@ void SceneManager()
 		break;
 	case Scene_SelectField:
 		SelectFieldScene();
-		break;
-	case Scene_InField:
-		InField();
 		break;
 	case Scene_Battle:
 		BattleScene();
@@ -754,57 +747,70 @@ void BattleInven()
 }
 void SelectFieldScene()
 {
-	printf_s("SelectFieldScene\n\n");
+	int startX = 40, startY = 5;
 
-	for (int i = 0; i < 3; i++)
+	showFrame(40, 20, startX, startY);
+
+	for (int i = 0; i <3; i++)
 	{
-		if (!(maps[i].name == nullptr))
-			printf_s("%d. %s\n", i + 1, maps[i].name);
+		SetCursor(startX + 8, startY + 4 + i * 4); printf_s("● - %s", maps[i].name);
+	    SetCursor(startX + 8, startY + 5 + i * 4); printf_s("레벨 제한:  %d", maps[i].levelLimit);
 	}
 
-	printf_s("4. 뒤로 가기\n");
-	int i = 0;
-	scanf("%d", &i);
-	if (i > 0 && i < 4)
+	SetCursor(startX + 8, startY + 15); printf_s("-메뉴 창으로 가기");
+
+	int catal = 1, catalMax = 4;
+
+	while(true)
 	{
-		if (maps[i - 1].levelLimit <= player.level)
+		SetPosition(startX + 36, startY + 0 + catal * 4, (char*)"◀", 2);
+		char c = _getch();
+
+		if (c == 72)
 		{
-			MapState = i - 1;
-			SceneState++;
+			SetPosition(startX + 36, startY + 0 + catal * 4, (char*)"  ", 2);
+			if (catal == 1)
+				catal = catalMax;
+			else
+				catal--;
+			SetPosition(startX + 36, startY + 0 + catal * 4, (char*)"◀", 2);
 		}
-		else
-			printf_s("레벨 제한");
-	}
-	if (i == 4) SceneState--;
+		else if (c == 80)
+		{
+			SetPosition(startX + 36, startY + 0 + catal * 4, (char*)"  ", 2);
+			if (catal == catalMax)
+				catal = 1;
+			else
+				catal++;
+			SetPosition(startX + 36, startY + 0 + catal * 4, (char*)"◀", 2);
+		}
+		else if (c == 13) //엔터
+		{
+			if (catal == 4)
+			{
+				SceneState--;
+				break;
+			}
+			else
+			{
+				if (maps[catal - 1].levelLimit <= player.level)
+				{
+					MapState = catal - 1;
+					SceneState++;
+					break;
+				}
+				else
+				{
+					SetColor(3);
+					SetCursor(startX + 24, startY + 0 + catal * 4);  printf_s(" 진입 불가 ");
+					Sleep(200);
+					SetCursor(startX + 24, startY + 0 + catal * 4);  printf_s("           ");
+					SetColor(2);
+				}
+			}
+			
+		}
 
-
-}
-void InField()
-{
-	system("cls");
-
-	printf("%s\n", maps[MapState].name);
-
-	printf("1. 사냥\n2. 인벤토리\n3. 뒤로가기");
-
-	int i = 0;
-	scanf("%d", &i);
-
-	if (i == 1)
-	{
-		SceneState++;
-	}
-	else if (i == 2)
-	{
-
-	}
-	else if (i == 3)
-	{
-		SceneState--;
-	}
-	else if (i == 4)
-	{
-		SceneState--;
 	}
 }
 void BattleScene()
@@ -813,157 +819,208 @@ void BattleScene()
 	const int item = 2;
 	const int exit = 3;
 
-	MONSTER* p[5] = { NULL,NULL,NULL,NULL,NULL };
+	int x = 10, y = 2;
 
-	int x = 10, y = 2; 
-	
-	int exp = 0, gold = 0; 
-
-	int apearNum = rand() % 3 + 1;
-
-	for (int i = 0; i < apearNum; i++)
-	{
-		int hidden = rand() % 100;
-
-		if (hidden < 10) p[i] = CreateMonster(maps[MapState].apearMonster[2]); 
-		else if (hidden < 50) p[i] = CreateMonster(maps[MapState].apearMonster[1]); 
-		else p[i] = CreateMonster(maps[MapState].apearMonster[0]); 
-	}
-
-	int PlayCurrHp = player.status.hp;
 	showFrame(80, 22, x, y);
+
 	while (true)
 	{
-		SetCursor(20, 2);
-		printf_s("전투 화면");
+		for (int i = 0; i < 22 - 2; i++) //콘솔 지우기
+		{
+			SetCursor(x + 1, y + i + 1);
+			for (int j = 0; j < 80 - 2; j++)
+			{
+				printf(" ");
+			}
+		}
 
-		int j = 0;
-		if (apearNum > 3) j = 0;
-		else if (apearNum > 1) j = 15;
-		else j = 30;
+		SetPosition(20, 12, (char*)"필드를 탐색하려면 1번 , 필드를 나가려면 2번 입력",2);
+		
+		while (true)
+		{
+			int i = 0;
+			scanf_s("%d", &i);
+
+			if (i == 2)
+			{
+				SceneState--;
+				return;
+			}
+			else if (i == 1)
+			{
+				break;
+			}
+		}
+
+		SetPosition(20, 12, (char*)"                                                ", 2);
+		SetPosition(20, 12, (char*)"필드 탐색 중", 2);
+		for (int i = 0; i < 10; i++)
+		{
+			SetPosition(34+i*3, 12, (char*)"■", 2);
+			Sleep(200);
+		}
+		
+	
+
+		for (int i = 0; i < 22 - 2; i++) //콘솔 지우기
+		{
+			SetCursor(x + 1, y + i + 1);
+			for (int j = 0; j < 80 - 2; j++)
+			{
+				printf(" ");
+			}
+		}
+
+		MONSTER* p[5] = { NULL,NULL,NULL,NULL,NULL };
+		int exp = 0, gold = 0;
+		int apearNum = rand() % 3 + 1;
 
 		for (int i = 0; i < apearNum; i++)
 		{
+			int hidden = rand() % 100;
 
-			SetCursor(x + 5 + j + (i * 15), y + 1);
-			printf_s("레벨:%d", p[i]->level);
-
-			SetCursor(x + 5 + j + (i * 15), y + 2);
-			printf_s("이름:%s", p[i]->name);
-
-			SetCursor(x + 5 + j + (i * 15), y + 3);
-			printf_s("                      ");
-			SetCursor(x + 5 + j + (i * 15), y + 3);
-			printf_s("HP:%d/%d", p[i]->currHP, p[i]->Hp);
+			if (hidden < 10) p[i] = CreateMonster(maps[MapState].apearMonster[2]);
+			else if (hidden < 50) p[i] = CreateMonster(maps[MapState].apearMonster[1]);
+			else p[i] = CreateMonster(maps[MapState].apearMonster[0]);
 		}
 
-		SetCursor(40, y + 15);
-		printf_s("레벨:%d", player.level);
+		int PlayCurrHp = player.status.hp;
 
-		SetCursor(40, y + 16);
-		printf_s("이름%s", player.name);
-
-		SetCursor(40, y + 17);
-		printf_s("                       ");
-		SetCursor(40, y + 17);
-		printf_s("HP:%d/%d", player.currHp, player.status.hp);
-
-		SetCursor(20, 26);
-		printf_s("1.공격   2.스킬사용  3.아이템사용 4.도망가기");
-
-		int i = 0;
-		scanf_s("%d", &i);
-
-		if (i == attack) //기본 공격
+		while (true)
 		{
-			SetCursor(20, 26);
-			printf_s("                                            ");
+			SetCursor(20, 2);
+			printf_s("전투 화면");
 
-			SetCursor(30, 26);
-			printf_s("공격할 몬스터 지정");
+			int j = 0;
+			if (apearNum > 3) j = 0;
+			else if (apearNum > 1) j = 15;
+			else j = 30;
+
+			for (int i = 0; i < apearNum; i++)
+			{
+
+				SetCursor(x + 5 + j + (i * 15), y + 1);
+				printf_s("레벨:%d", p[i]->level);
+
+				SetCursor(x + 5 + j + (i * 15), y + 2);
+				printf_s("이름:%s", p[i]->name);
+
+				SetCursor(x + 5 + j + (i * 15), y + 3);
+				printf_s("                      ");
+				SetCursor(x + 5 + j + (i * 15), y + 3);
+				printf_s("HP:%d/%d", p[i]->currHP, p[i]->Hp);
+			}
+
+			SetCursor(40, y + 15);
+			printf_s("레벨:%d", player.level);
+
+			SetCursor(40, y + 16);
+			printf_s("이름%s", player.name);
+
+			SetCursor(40, y + 17);
+			printf_s("                       ");
+			SetCursor(40, y + 17);
+			printf_s("HP:%d/%d", player.currHp, player.status.hp);
+
+			SetCursor(20, 26);
+			printf_s("1.공격   2.스킬사용  3.아이템사용 4.도망가기");
 
 			int i = 0;
 			scanf_s("%d", &i);
 
-			if ((i < 6 && i>0) && (p[i - 1] != NULL) && (p[i - 1]->currHP > 0))
+			if (i == attack) //기본 공격
 			{
-				int damage = PlayerAttack(p[i - 1]);
+				SetCursor(20, 26);
+				printf_s("                                            ");
 
-				SetCursor(40, y + 13);
-				printf_s("공격");
-				Sleep(1000);
-				SetCursor(40, y + 13);
-				printf_s("     ");
+				SetCursor(30, 26);
+				printf_s("공격할 몬스터 지정");
 
-				for (int k = 0; k < apearNum; k++)
+				int i = 0;
+				scanf_s("%d", &i);
+
+				if ((i < 6 && i>0) && (p[i - 1] != NULL) && (p[i - 1]->currHP > 0))
 				{
-					if (k == i - 1)//피격당한 몬스터
+					int damage = PlayerAttack(p[i - 1]);
+
+					SetCursor(40, y + 13);
+					printf_s("공격");
+					Sleep(1000);
+					SetCursor(40, y + 13);
+					printf_s("     ");
+
+					for (int k = 0; k < apearNum; k++)
 					{
-						SetCursor(x + 5 + j + (k * 15), y + 5);
-						printf_s("데미지: %d", damage);
-						Sleep(1000);
-						SetCursor(x + 5 + j + (k * 15), y + 5);
-						printf_s("          ");
+						if (k == i - 1)//피격당한 몬스터
+						{
+							SetCursor(x + 5 + j + (k * 15), y + 5);
+							printf_s("데미지: %d", damage);
+							Sleep(1000);
+							SetCursor(x + 5 + j + (k * 15), y + 5);
+							printf_s("          ");
+						}
+						SetCursor(x + 5 + j + (k * 15), y + 3);
+						printf_s("         ");
+						SetCursor(x + 5 + j + (k * 15), y + 3);
+						printf_s("HP:%d/%d", p[k]->currHP, p[k]->Hp);
 					}
 
-					SetCursor(x + 5 + j + (k * 15), y + 3);
-					printf_s("         ");
-					SetCursor(x + 5 + j + (k * 15), y + 3);
-					printf_s("HP:%d/%d", p[k]->currHP, p[k]->Hp);
-				}
-
-				for (int k = 0; k < apearNum; k++)
-				{
-					if (p[k]->currHP > 0)
+					for (int k = 0; k < apearNum; k++)
 					{
-						damage = monsAttack(p[k]);
+						if (p[k]->currHP > 0)
+						{
+							damage = monsAttack(p[k]);
 
-						SetCursor(x + 5 + j + (k * 15), y + 5);
-						printf_s("공격");
-						Sleep(1000);
-						SetCursor(x + 5 + j + (k * 15), y + 5);
-						printf_s("      ");
+							SetCursor(x + 5 + j + (k * 15), y + 5);
+							printf_s("공격");
+							Sleep(1000);
+							SetCursor(x + 5 + j + (k * 15), y + 5);
+							printf_s("      ");
 
-						SetCursor(40, y + 13);
-						printf_s("데미지: %d", damage);
-						Sleep(1000);
-						SetCursor(40, y + 13);
-						printf_s("          ");
+							SetCursor(40, y + 13);
+							printf_s("데미지: %d", damage);
+							Sleep(1000);
+							SetCursor(40, y + 13);
+							printf_s("          ");
 
-						SetCursor(40, y + 17);
-						printf_s("HP:%d/%d", player.currHp, player.status.hp);
+							SetCursor(40, y + 17);
+							printf_s("HP:%d/%d", player.currHp, player.status.hp);
+						}
 					}
 				}
 			}
-		}
-		else if (i == item)//아이템 사용
-		{
-			BattleInven();
-		}
-		else if (i == exit)//도망
-			break;
+			else if (i == item)//아이템 사용
+			{
+				BattleInven();
+			}
+			else if (i == exit)//도망
+				break;
 
-		int check = 0;
-		for (int i = 0; i < apearNum; i++)
-		{
-			check += p[i]->currHP;
-		}
-		if (check == 0)
-		{
+			int check = 0;
 			for (int i = 0; i < apearNum; i++)
 			{
-				exp += p[i]->exp;
-				gold += p[i]->gold;
+				check += p[i]->currHP;
 			}
-			rewardGain(exp, gold);
-			Save();
-			break;
+			if (check == 0)
+			{
+				for (int i = 0; i < apearNum; i++)
+				{
+					exp += p[i]->exp;
+					gold += p[i]->gold;
+				}
+				rewardGain(exp, gold);
+				Save();
+				break;
+			}
 		}
+		for (int i = 0; i < apearNum; i++)
+		{
+			free(p[i]);
+		}
+		SetCursor(20, 26);
+		printf_s("                                             ");
 	}
-	for (int i = 0; i < apearNum; i++)
-	{
-		free(p[i]);
-	}
+
 	SceneState--;
 }
 int monsAttack(const MONSTER* p)
@@ -1045,12 +1102,8 @@ void winUi(int gold, int exp, int isLevelUp)//이겼을때 표시되는 ui
 		SetCursor(startX + 5, startY + 8);
 		printf_s("* 캐릭터 레벨 업!!!!");
 	}
-	SetCursor(startX + 7, startY + 10);
-	printf_s("1. 전투 계속");
 
-	int i = 0;
-	scanf_s("%d", &i);
-	if (i == 1) BattleScene();
+	Sleep(1000);
 }
 void rewardGain(int exp, int gold) //플레이어 보상획득
 {
@@ -1088,7 +1141,6 @@ void showFrame(int w, int h, int startX, int startY)
 		{
 			printf(" ");
 		}
-
 	}
 
 	
