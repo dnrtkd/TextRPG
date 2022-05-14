@@ -147,7 +147,8 @@ void MenuSceneUI(int startX, int startY);
 void Save();
 void Load();
 void CreatePlayer();
-void useItem(int invenIndex);
+int useItem(int invenIndex);
+void shopUi(int page, int startX, int startY);
 void WeaponDataInput(int index, int limitLevel, const char* name, int att, const int type, int price)
 {
 	weapons[index].limitLevel = limitLevel;
@@ -292,10 +293,7 @@ int main(void)
 	UseTemDataInput(0, "경단", 30, 0, Item_Use, 20);
 	UseTemDataInput(1, "내복환", 100, 0, Item_Use, 100);
 	UseTemDataInput(2, "쌍화차", 150, 0, Item_Use, 200);
-	UseTemDataInput(3, "파랑가루", 0, 20, Item_Use, 30);
-	UseTemDataInput(4, "비약", 0, 40, Item_Use, 200);
-	UseTemDataInput(5, "약화제", 0, 80, Item_Use, 300);
-
+	
 	EtcTemDataInput(0, "달걀", "꼬꼬닭이 품은 달걀", Item_ETC, 0);
 	EtcTemDataInput(1, "콩", "상경쥐의 주식", Item_ETC, 0);
 	EtcTemDataInput(2, "폭신폭신 솜털", "구리왕의 모피", Item_ETC, 0);
@@ -320,9 +318,8 @@ int main(void)
 	MapDataInput(1, "남한 산성", 5, 3, 4, 5);
 	MapDataInput(2, "대마도", 10, 6, 7, 8);
 
-	InputInven(useitems[0].item);
-	InputInven(useitems[3].item);
-
+	for (int i = 0; i < 5; i++) InputInven(useitems[0].item);
+	
 	player.name = (char*)malloc(64);
 	player.name = NULL;
 	// ** 커서를 안보이게 함.
@@ -685,11 +682,15 @@ void showBattleInvenUI()//배틀씬의 인벤토리 ui
 
 	SetPosition(startX + 17, startY + 2 + catal * 2, (char*)"◀", 2);
 
+	SetCursor(startX + 1, 20); //설명란
+	printf_s("               ");
+	SetCursor(startX + 1, 20);
+	printf_s(" 체력 %d 회복", useitems[inventory[catal - 1].item.itemNum].hpRegain);
+
 	while (true)
 	{
 		char c = _getch();
 
-		if(inventory)
 		SetCursor(startX + 1, 20); //설명란
 		printf_s("               ");
 		SetCursor(startX + 1, 20);
@@ -715,7 +716,13 @@ void showBattleInvenUI()//배틀씬의 인벤토리 ui
 		}
 		else if (c == 13)
 		{
-			useItem(catal-1);
+			SetCursor(40, 15);
+			printf_s("회복 %d", useItem(catal - 1));
+			Sleep(1000);
+			SetCursor(40, 15);
+			printf_s("          ");
+			SetCursor(40, 19);
+			printf_s("HP:%d/%d", player.currHp, player.status.hp);
 
 			for (int i = 0; i < 25; i++)
 			{
@@ -923,7 +930,7 @@ void BattleScene()
 			printf_s("HP:%d/%d", player.currHp, player.status.hp);
 
 			SetCursor(20, 26);
-			printf_s("1.공격   2.스킬사용  3.아이템사용 4.도망가기");
+			printf_s("1.공격  2.아이템사용 3.도망가기");
 
 			int i = 0;
 			scanf_s("%d", &i);
@@ -992,6 +999,29 @@ void BattleScene()
 			else if (i == item)//아이템 사용
 			{
 				BattleInven();
+
+				for (int k = 0; k < apearNum; k++)
+				{
+					if (p[k]->currHP > 0)
+					{
+						int damage = monsAttack(p[k]);
+
+						SetCursor(x + 5 + j + (k * 15), y + 5);
+						printf_s("공격");
+						Sleep(1000);
+						SetCursor(x + 5 + j + (k * 15), y + 5);
+						printf_s("      ");
+
+						SetCursor(40, y + 13);
+						printf_s("데미지: %d", damage);
+						Sleep(1000);
+						SetCursor(40, y + 13);
+						printf_s("          ");
+
+						SetCursor(40, y + 17);
+						printf_s("HP:%d/%d", player.currHp, player.status.hp);
+					}
+				}
 			}
 			else if (i == exit)//도망
 				break;
@@ -1187,121 +1217,146 @@ char* SetName()
 	return pName;
 }
 
+void shopUi(int page,int startX,int startY)
+{	
+	const int WP = 1;//무기
+	const int PT = 2;//방어구
+	const int USE = 3; //소모품
+
+	int catal = 1, catalMax = 0;
+
+	SetCursor(startX + 10, startY + 2);
+	printf_s("------ 상점 ------");
+
+	for (int i = 0; i < 22 - 2; i++)
+	{
+		SetCursor(startX + 1, startY + i + 1);
+		for (int j = 0; j < 50 - 2; j++)
+		{
+			printf(" ");
+		}
+	}
+
+
+	if (page == WP)
+	{
+		catalMax = 3;
+		SetCursor(startX + 25, startY + 2);
+		printf_s("        * 무기류 *");
+
+		for (int i = 0; i < 3; i++)
+		{
+			if (weapons[i].att != NULL)
+			{
+				SetCursor(startX + 2, startY + 4 + (i * 4));
+				printf_s("*  이름:%s     금액:%d", weapons[i].item.name, weapons[i].item.price);
+
+				SetCursor(startX + 2, startY + 5 + (i * 4));
+				printf_s("   공격력:%d   레벨제한:%d", weapons[i].att, weapons[i].limitLevel);
+			}
+		}
+	}
+	else if (page == PT)
+	{
+		catalMax = 3;
+		SetCursor(startX + 25, startY + 2);
+		printf_s("        * 방어구류 *");
+		for (int i = 0; i < 3; i++)
+		{
+			if (protections[i].def != NULL)
+			{
+				SetCursor(startX + 2, startY + 4 + (i * 4));
+				printf_s("*  이름:%s     금액:%d", protections[i].item.name, protections[i].item.price);
+
+				SetCursor(startX + 2, startY + 5 + (i * 4));
+				printf_s("   방어력:%d   레벨제한:%d", protections[i].def, protections[i].limitLevel);
+			}
+		}
+	}
+	else if (page == USE)
+	{
+		catalMax = 3;
+		SetCursor(startX + 25, startY + 2);
+		printf_s("        * 소모품 *");
+		for (int i = 0; i < 3; i++)
+		{
+			if (useitems[i].hpRegain != NULL)
+			{
+				SetCursor(startX + 2, startY + 4 + (i * 4));
+				printf_s("*  이름:%s  금액:%d  ", useitems[i].item.name, useitems[i].item.price);
+
+				SetCursor(startX + 2, startY + 5 + (i * 4));
+				printf_s("   체력회복양:%d   ", useitems[i].hpRegain);
+			}
+		}
+	}
+
+	SetCursor(startX + 40, startY + 0 + (catal * 4));
+	printf_s("◀");
+
+	SetCursor(startX + 2, startY + 20);
+	printf_s("1. 구입  2. 상점 나가기 ");
+}
+
 void shop()
 {
 	short startX = 40;
 	short startY = 2;
 
-	const int WP = 0;//무기
-	const int PT = 1;//방어구
-	const int USE = 2; //소모품
-
-	int page = 0;
-	int catal = 0;
-
-	SetCursor(startX + 10, startY + 2);
-	printf_s("------ 상점 ------");
+	int page = 1;
+	int catal = 1 ,catalMax=3;
 	showFrame(50, 22, startX, startY);
+
+	shopUi(1, startX, startY);
 
 	while (true)
 	{
-		page = page % 3;
-
-		if (page == WP)
-		{
-			catal = catal % 3;
-			SetCursor(startX + 25, startY + 2);
-			printf_s("        * 무기류 *");
-
-			for (int i = 0; i < sizeof(weapons) / sizeof(WEAPON); i++)
-			{
-				if (weapons[i].att != NULL)
-				{
-					SetCursor(startX + 2, startY + 4 + (i * 4));
-					printf_s("*  이름:%s     금액:%d", weapons[i].item.name, weapons[i].item.price);
-
-					SetCursor(startX + 2, startY + 5 + (i * 4));
-					printf_s("   공격력:%d   레벨제한:%d", weapons[i].att, weapons[i].limitLevel);
-				}
-			}
-
-			SetCursor(startX + 40, startY + 4 + (catal * 4));
-			printf_s("<- ");
-		}
-		else if (page == PT)
-		{
-			catal = catal % 3;
-			SetCursor(startX + 25, startY + 2);
-			printf_s("        * 방어구류 *");
-			for (int i = 0; i < sizeof(protections) / sizeof(PROTECTION); i++)
-			{
-				if (protections[i].def != NULL)
-				{
-					SetCursor(startX + 2, startY + 4 + (i * 4));
-					printf_s("*  이름:%s     금액:%d", protections[i].item.name, protections[i].item.price);
-
-					SetCursor(startX + 2, startY + 5 + (i * 4));
-					printf_s("   방어력:%d   레벨제한:%d", protections[i].def, protections[i].limitLevel);
-				}
-			}
-
-			SetCursor(startX + 40, startY + 4 + (catal * 4));
-			printf_s("<- ");
-		}
-		else if (page == USE)
-		{
-			catal = catal % 6;
-			SetCursor(startX + 25, startY + 2);
-			printf_s("        * 소모품 *");
-			for (int i = 0; i < sizeof(useitems) / sizeof(USETEM); i++)
-			{
-				if (useitems[i].hpRegain != NULL)
-				{
-					SetCursor(startX + 2, startY + 4 + (i * 2));
-					printf_s("*  이름:%s   체력회복양:%d   금액:%d", useitems[i].item.name, useitems[i].hpRegain, useitems[i].item.price);
-				}
-			}
-
-			SetCursor(startX + 40, startY + 4 + (catal * 4));
-			printf_s("<- ");
-		}
-
-		SetCursor(startX + 2, startY + 20);
-		printf_s("1. 구입  2. 상점 나가기 ");
-
 		char c = _getch();
-		if (c == 13)break;
-
 		if (c == 77)
 		{
-			page++;
+			if (page == 3)
+				page = 1;
+			else page++;
+			shopUi(page, startX, startY);
 		}
 		else if (c == 75)
 		{
-			if (page != 0)page--;
+			if (page == 1)page = 3;
+			else page--;
+			shopUi(page, startX, startY);
 		}
 		else if (c == 72)
 		{
-			if (catal != 0)catal--;
+			SetCursor(startX + 40, startY + 0 + (catal * 4)); printf_s("  ");
+			if (catal == 1)
+				catal = catalMax;
+			else catal--;
+			SetCursor(startX + 40, startY + 0 + (catal * 4)); printf_s("◀");
 		}
 		else if (c == 80)
 		{
+			SetCursor(startX + 40, startY + 0 + (catal * 4)); printf_s("  ");
+			if (catal == catalMax)
+				catal = 1;
+			else
 			catal++;
+			SetCursor(startX + 40, startY + 0 + (catal * 4)); printf_s("◀");
 		}
-		else if (c == 'a') //구입
+		else if (c == 13) //구입
 		{
-			if (page == WP)
+			if (page == 1)
 			{
-				buy(weapons[catal].item);
+				buy(weapons[catal-1].item);
 			}
-			else if (page == PT)
+			else if (page == 2)
 			{
-				buy(protections[catal].item);
+				buy(protections[catal-1].item);
 			}
-			else if (page == USE)
+			else if (page == 3)
 			{
-				buy(useitems[catal].item);
+				buy(useitems[catal-1].item);
 			}
+			break;
 		}
 
 	}
@@ -1337,14 +1392,21 @@ void useTemUse(ITEM item, int index)
 	}
 }
 
-void useItem(int Index) //아이템 사용 함수
+int useItem(int Index) //아이템 사용 함수
 {
+	int hpSub = 0;
 	if (inventory[Index].item.itemType == Item_Use)
 	{
 		if (player.currHp + useitems[inventory[Index].item.itemNum].hpRegain > player.status.hp)
+		{
+			hpSub = player.status.hp - player.currHp;
 			player.currHp = player.status.hp;
+		}
 		else
-		player.currHp += useitems[inventory[Index].item.itemNum].hpRegain;
+		{
+			hpSub=useitems[inventory[Index].item.itemNum].hpRegain;
+			player.currHp += useitems[inventory[Index].item.itemNum].hpRegain;
+		}
 	}
 	
 	inventory[Index].count--;
@@ -1355,6 +1417,7 @@ void useItem(int Index) //아이템 사용 함수
 		inventory[invenIndex - 1] = inventory[Index];
 		invenIndex--;
 	}
+	return hpSub;
 }
 
 void Save()
