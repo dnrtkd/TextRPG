@@ -589,42 +589,43 @@ void showPlayer()
 	short startX = 30;
 	short startY = 5;
 
-
-	showFrame(40, 18, startX, startY);
-	SetCursor(startX + 3, startY + 2);
+	showFrame(60, 17, startX, startY);
+	SetCursor(startX + 2, startY + 3);
 	printf_s("플레이어 닉네임: %s", player.name);
 
-	SetCursor(startX + 2, startY + 3);
+	SetCursor(startX + 2, startY + 5);
 	printf_s("레벨          : %d", player.level);
 
-	SetCursor(startX + 2, startY + 4);
+	SetCursor(startX + 2, startY + 7);
 	printf_s("경험치        : %d", player.exp);
 
-	SetCursor(startX + 2, startY + 5);
-	printf_s("직업          : %d", player.job);
-
-	SetCursor(startX + 2, startY + 6);
-	printf_s("골드          : %d", player.gold);
-
-	SetCursor(startX + 2, startY + 7);
-	printf_s("체력          : %d", player.status.hp);
-
-	SetCursor(startX + 2, startY + 8);
-	printf_s("공격력        : %d", player.status.att);
-
 	SetCursor(startX + 2, startY + 9);
-	printf_s("방어력        : %d", player.status.def);
-
-	SetCursor(startX + 2, startY + 10);
-	printf_s("순발력        : %d", player.status.quick);
+	if (player.job == Job_sword)
+	    printf_s("직업          : 검술사");
+	else if(player.job == Job_bow)
+		printf_s("직업          : 궁술사");
+	else
+		printf_s("직업          : 총술사");
 
 	SetCursor(startX + 2, startY + 11);
+	printf_s("골드          : %d", player.gold);
+
+	SetCursor(startX + 30, startY + 3);
+	printf_s("체력          : %d", player.status.hp);
+
+	SetCursor(startX + 30, startY + 5);
+	printf_s("공격력        : %d", player.status.att);
+
+	SetCursor(startX + 30, startY + 7);
+	printf_s("방어력        : %d", player.status.def);
+
+	SetCursor(startX + 30, startY + 9);
 	printf_s("장착 무기     : %s", player.weapon.item.name);
 
-	SetCursor(startX + 2, startY + 12);
+	SetCursor(startX + 30, startY + 11);
 	printf_s("장착 방어구   : %s", player.protection.item.name);
 
-	SetCursor(startX + 2, startY + 14);
+	SetCursor(startX + 2, startY + 15);
 	printf_s("1. 캐릭터 정보창 닫기");
 
 	int i = 0;
@@ -1295,7 +1296,7 @@ void shopUi(int page,int startX,int startY)
 	printf_s("◀");
 
 	SetCursor(startX + 2, startY + 20);
-	printf_s("1. 구입  2. 상점 나가기 ");
+	printf_s("1. 구입  2. 상점 나가기      보유금액:%d",player.gold);
 }
 
 void shop()
